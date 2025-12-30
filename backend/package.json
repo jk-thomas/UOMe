@@ -5,7 +5,9 @@
   "type": "module",
   "scripts": {
     "dev": "node --watch src/server.js",
-    "start": "node src/server.js"
+    "start": "node src/server.js",
+    "reset-db": "node tests/reset-db.js",
+    "test": "npm run reset-db && node tests/expenses.test.js && node tests/settlement.test.js"
   },
   "keywords": [],
   "author": "",
