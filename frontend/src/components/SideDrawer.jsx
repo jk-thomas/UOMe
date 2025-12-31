@@ -61,11 +61,11 @@ export default function SideDrawer({
 
         <nav className="drawer-nav">
           <NavButton view="ledger" label="Ledger" />
-          <NavButton view="owed_simple" label="Owed to Me (Simple)" badge={grossOwedToMe.length} />
-          <NavButton view="owe_simple" label="I Owe (Simple)" badge={grossIOwe.length} />
+          <NavButton view="owed_simple" label="Owed to Me " badge={grossOwedToMe.length} />
+          <NavButton view="owe_simple" label="I Owe " badge={grossIOwe.length} />
           <NavButton view="mine" label="My Transactions" />
-          <NavButton view="owed_opt" label="Payments To You (Optimized)" badge={paymentsToMe.length} />
-          <NavButton view="owe_opt" label="Payments You Make (Optimized)" badge={paymentsIMake.length} />
+          <NavButton view="owed_opt" label="Payments To You (Net)" badge={paymentsToMe.length} />
+          <NavButton view="owe_opt" label="Payments You Make (Net)" badge={paymentsIMake.length} />
         </nav>
 
         <div className="drawer-footer-note">
