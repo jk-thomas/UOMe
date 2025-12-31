@@ -42,6 +42,7 @@ button {
   position: fixed;
   inset: 0;
   background: rgba(0,0,0,0.4);
+  z-index: 2000;
 }
 
 .modal {
@@ -49,13 +50,16 @@ button {
   padding: 1rem;
   margin: 20vh auto;
   max-width: 320px;
+  position: relative;
+  z-index: 2001;
+  border-radius: 15px;
 }
 
 .drawer {
   position: fixed;
   top: 0;
   left: 0;
-  width: 80%;
+  width: 70%;
   height: 100%;
   background: white;
   /* color: black; */

@@ -13,6 +13,7 @@ import FloatingAddButton from "./components/FloatingAddButton";
 import AddExpenseModal from "./components/AddExpenseModal";
 import SideDrawer from "./components/SideDrawer";
 import Header from "./components/Header";
+import { computePerExpenseOwes } from "./utils/settlement";
 
 import "./App.css";
 
@@ -67,35 +68,65 @@ export default function App() {
       );
     }
 
-    if (activeView === "owed") {
-      return transfers
-        .filter(t => t.to === user)
-        .map((t, i) => (
-          <div key={i} className="card">
-            {t.from} owes you ${(t.amount_cents / 100).toFixed(2)}
-          </div>
-        ));
+    // Simple (per-expense) transparent views
+    const perExpenseOwes = computePerExpenseOwes(expenses, members);
+
+    if (activeView === "owed_simple") {
+      const list = perExpenseOwes.filter(o => o.to === user);
+      if (list.length === 0) return <div className="empty">No one owes you (simple)</div>;
+
+      return list.map((o, i) => (
+        <div key={`${o.expenseId}-${o.from}-${i}`} className="card">
+          <strong>{o.from}</strong> owes you ${(o.amount_cents / 100).toFixed(2)}
+          {o.description ? <div className="desc">{o.description}</div> : null}
+        </div>
+      ));
     }
 
-    if (activeView === "owe") {
-      return transfers
-        .filter(t => t.from === user)
-        .map((t, i) => (
-          <div key={i} className="card">
-            You owe {t.to} ${(t.amount_cents / 100).toFixed(2)}
-          </div>
-        ));
+    if (activeView === "owe_simple") {
+      const list = perExpenseOwes.filter(o => o.from === user);
+      if (list.length === 0) return <div className="empty">You don’t owe anyone (simple)</div>;
+
+      return list.map((o, i) => (
+        <div key={`${o.expenseId}-${o.to}-${i}`} className="card">
+          You owe <strong>{o.to}</strong> ${(o.amount_cents / 100).toFixed(2)}
+          {o.description ? <div className="desc">{o.description}</div> : null}
+        </div>
+      ));
+    }
+
+    // net settlement views
+    if (activeView === "owed_opt") {
+      const list = transfers.filter(t => t.to === user);
+      if (list.length === 0) return <div className="empty">No payments to you (optimized)</div>;
+
+      return list.map((t, i) => (
+        <div key={i} className="card">
+          <strong>{t.from}</strong> → You: ${(t.amount_cents / 100).toFixed(2)}
+        </div>
+      ));
+    }
+
+    if (activeView === "owe_opt") {
+      const list = transfers.filter(t => t.from === user);
+      if (list.length === 0) return <div className="empty">No payments to make (optimized)</div>;
+
+      return list.map((t, i) => (
+        <div key={i} className="card">
+          You → <strong>{t.to}</strong>: ${(t.amount_cents / 100).toFixed(2)}
+        </div>
+      ));
     }
 
     if (activeView === "mine") {
-      return expenses
-        .filter(e => e.payer === user)
-        .map(e => (
-          <div key={e.id} className="card">
-            ${(e.amount_cents / 100).toFixed(2)} –{" "}
-            {e.description || "No description"}
-          </div>
-        ));
+      const mine = expenses.filter(e => e.payer === user);
+      if (mine.length === 0) return <div className="empty">No transactions yet</div>;
+
+      return mine.map(e => (
+        <div key={e.id} className="card">
+          ${(e.amount_cents / 100).toFixed(2)} – {e.description || "No description"}
+        </div>
+      ));
     }
 
     return null;
@@ -127,15 +158,10 @@ export default function App() {
       {/* Main Content */}
       {renderMainView()}
 
-      {/* Public Ledger */}
-      {/* <Ledger
-        expenses={expenses}
-        currentUser={user}
-        onDelete={handleDelete}
-      /> */}
-
       {/* Floating + button */}
-      <FloatingAddButton onClick={() => setShowModal(true)} />
+      {activeView === "ledger" && (
+        <FloatingAddButton onClick={() => setShowModal(true)} />
+      )}
 
       {/* Add Expense Modal */}
       {showModal && (
@@ -158,7 +184,8 @@ export default function App() {
         balances={balances}
         transfers={transfers}
         user={user}
-        // expenses={expenses}
+        expenses={expenses}
+        members={members}
       />
     </div>
   );

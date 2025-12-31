@@ -1,65 +1,81 @@
+import { useMemo, useState } from "react";
+import { computePerExpenseOwes } from "../utils/settlement";
 
 export default function SideDrawer({ 
     open, 
     onClose, 
     activeView,
     setActiveView,
-    balances, 
-    transfers, 
+    balances = {}, 
+    transfers = [], 
     user, 
+    expenses = [],
+    members = []
 }) {
   if (!open) return null;
 
-  //const myExpenses = expenses.filter(e => e.payer === user);
-  const owedToMe = transfers.filter(t => t.to === user);
-  const iOwe = transfers.filter(t => t.from === user);
+  const myBalanceCents = balances[user] ?? 0;
+
+  // Optimized transfers (net settlement)
+  const paymentsToMe = transfers.filter(t => t.to === user);
+  const paymentsIMake = transfers.filter(t => t.from === user);
+
+  // Transparent per-expense obligations (gross)
+  const perExpenseOwes = computePerExpenseOwes(expenses, members);
+  const grossOwedToMe = perExpenseOwes.filter(o => o.to === user);
+  const grossIOwe = perExpenseOwes.filter(o => o.from === user);
+
+  function NavButton({ view, label, badge }) {
+    const isActive = activeView === view;
+    return (
+      <button
+        className={`drawer-nav-item ${isActive ? "active" : ""}`}
+        onClick={() => {
+          setActiveView(view);
+          onClose();
+        }}
+      >
+        <span>{label}</span>
+        {typeof badge === "number" && (
+          <span className="badge">{badge}</span>
+        )}
+      </button>
+    );
+  }
 
   return (
-    <div className="drawer">
-        <button onClick={onClose}>Close</button>
+    <>
+      {/* Overlay: click outside closes */}
+      <div className="drawer-overlay" onClick={onClose} />
 
-      <nav className="drawer-menu">
-        <button onClick={() => setActiveView("ledger")}>
-          Ledger
-        </button>
-
-        <button onClick={() => setActiveView("owed")}>
-          Owed to Me ({owedToMe.length})
-        </button>
-
-        <button onClick={() => setActiveView("owe")}>
-          I Owe ({iOwe.length})
-        </button>
-
-        <button onClick={() => setActiveView("mine")}>
-          My Transactions
-        </button>
-      </nav>
-
-      <hr />
-
-      <h4>Your Balance</h4>
-      <p>${((balances[user] ?? 0) / 100).toFixed(2)}</p>
-      {/* <button onClick={onClose}>Close</button>
-
-      <h3>Your Balance</h3>
-      <p>${(balances[user] / 100).toFixed(2)}</p>
-
-      <h4>Settle Up</h4>
-      {transfers
-        .filter(t => t.from === user || t.to === user)
-        .map((t, i) => (
-          <div key={i}>
-            {t.from} → {t.to}: ${(t.amount_cents / 100).toFixed(2)}
+      <aside className="drawer" role="dialog" aria-modal="true">
+        <div className="drawer-top">
+          <button className="drawer-close" onClick={onClose}>✕</button>
+          <div className="drawer-user">
+            <div className="drawer-user-name">{user}</div>
+            <div className="drawer-user-balance">
+              Net Balance: ${(myBalanceCents / 100).toFixed(2)}
+            </div>
           </div>
-        ))}
-
-      <h4>Your Transactions</h4>
-      {myExpenses.map(e => (
-        <div key={e.id}>
-          ${ (e.amount_cents / 100).toFixed(2) } – {e.description}
         </div>
-      ))} */}
-    </div>
+
+        <nav className="drawer-nav">
+          <NavButton view="ledger" label="Ledger" />
+          <NavButton view="owed_simple" label="Owed to Me (Simple)" badge={grossOwedToMe.length} />
+          <NavButton view="owe_simple" label="I Owe (Simple)" badge={grossIOwe.length} />
+          <NavButton view="mine" label="My Transactions" />
+          <NavButton view="owed_opt" label="Payments To You (Optimized)" badge={paymentsToMe.length} />
+          <NavButton view="owe_opt" label="Payments You Make (Optimized)" badge={paymentsIMake.length} />
+        </nav>
+
+        <div className="drawer-footer-note">
+          {/* <div className="note-title">Tip</div>
+          <div className="note-text">
+            “Simple” shows per-expense owes (easy to verify from the ledger).<br />
+            “Optimized” reduces the number of payments using net settlement.
+          </div> */}
+        </div>
+      </aside>
+    </>
   );
 }
