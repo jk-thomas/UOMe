@@ -19,6 +19,6 @@ app.get("/api/health", (_, res) => res.json({ ok: true }));
 app.use("/api/expenses", expensesRouter(db));
 app.use("/api/settlement", settlementRouter(db));
 
-app.listen(PORT, () => {
+app.listen(PORT, () => { //"0.0.0.0,"
   console.log(`Backend running on http://localhost:${PORT}`);
 });

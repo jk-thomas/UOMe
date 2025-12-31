@@ -1,3 +1,7 @@
+/* :root {
+  background-color: #242424
+} */
+
 body {
   font-family: system-ui, sans-serif;
   margin: 0;
@@ -19,3 +23,83 @@ body {
 button {
   margin-top: 0.5rem;
 }
+
+.ledger {
+  padding-bottom: 80px;
+}
+
+.fab {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  font-size: 32px;
+}
+
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.4);
+}
+
+.modal {
+  background: white;
+  padding: 1rem;
+  margin: 20vh auto;
+  max-width: 320px;
+}
+
+.drawer {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 80%;
+  height: 100%;
+  background: white;
+  /* color: black; */
+  padding: 1rem;
+  box-shadow: 2px 0 10px rgba(0,0,0,0.2);
+  z-index: 1000;
+}
+
+.drawer-menu button {
+  display: block;
+  width: 100%;
+  padding: 0.75rem;
+  text-align: left;
+  background: none;
+  border: none;
+  font-size: 1rem;
+}
+
+.header {
+  position: sticky;
+  top: 0;
+  display: flex;
+  align-items: center;
+  padding: 0.75rem;
+  background: white;
+  /* color: black; */
+  border-bottom: 1px solid #eee;
+  z-index: 10;
+}
+
+.menu-btn {
+  font-size: 1.5rem;
+  background: none;
+  border: none;
+  /* background-color: black; */
+}
+
+.title {
+  flex: 1;
+  text-align: center;
+  margin: 0;
+}
+
+.spacer {
+  width: 2rem;
+}
+
