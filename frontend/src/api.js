@@ -1,5 +1,5 @@
 const API_BASE = //"http://192.168.1.106:3001/api"
-   import.meta.env.VITE_API_BASE || "http://localhost:3001/api";
+   import.meta.env.VITE_API_BASE || "https://uome-92q7.onrender.com/api";
 
 export async function getExpenses() {
   const res = await fetch(`${API_BASE}/expenses`);
