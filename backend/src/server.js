@@ -20,5 +20,5 @@ app.use("/api/expenses", expensesRouter(db));
 app.use("/api/settlement", settlementRouter(db));
 
 app.listen(PORT, () => { //"0.0.0.0,"
-  console.log(`Backend running on http://localhost:${PORT}`);
+  console.log(`Backend running on port ${PORT}`);
 });

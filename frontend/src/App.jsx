@@ -14,6 +14,8 @@ import AddExpenseModal from "./components/AddExpenseModal";
 import SideDrawer from "./components/SideDrawer";
 import Header from "./components/Header";
 import { computePerExpenseOwes } from "./utils/settlement";
+import { aggregateByPerson } from "./utils/aggregateOwes";
+import { bilateralNetting } from "./utils/bitlateralNetting";
 
 import "./App.css";
 
@@ -59,6 +61,9 @@ export default function App() {
   /* -------------------- MAIN VIEW SWITCH -------------------- */
   function renderMainView() {
     if (activeView === "ledger") {
+      // useEffect(() => {
+      //   document.title = "UOMe | Ledger";
+      // }, []);
       return (
         <Ledger
           expenses={expenses}
@@ -72,27 +77,78 @@ export default function App() {
     const perExpenseOwes = computePerExpenseOwes(expenses, members);
 
     if (activeView === "owed_simple") {
-      const list = perExpenseOwes.filter(o => o.to === user);
-      if (list.length === 0) return <div className="empty">No one owes you (simple)</div>;
+      // aggregate
+      // const perExpenseOwes = computePerExpenseOwes(expenses, members);
+      // const list = perExpenseOwes.filter(o => o.to === user);
 
-      return list.map((o, i) => (
-        <div key={`${o.expenseId}-${o.from}-${i}`} className="card">
-          <strong>{o.from}</strong> owes you ${(o.amount_cents / 100).toFixed(2)}
-          {o.description ? <div className="desc">{o.description}</div> : null}
+      // const aggregated = aggregateByPerson(list, "from");
+
+      // const names = Object.keys(aggregated);
+      // if (names.length === 0) {
+      //   return <div className="empty">No one owes you</div>;
+      // }
+
+      // return names.map(name => (
+      //   <div key={name} className="card">
+      //     <strong>{name}</strong> owes you{" "}
+      //     ${(aggregated[name] / 100).toFixed(2)}
+      //   </div>
+      // ));
+
+      // net
+      const perExpenseOwes = computePerExpenseOwes(expenses, members);
+      const { owedToMe } = bilateralNetting(perExpenseOwes, user);
+
+      const names = Object.keys(owedToMe);
+      if (names.length === 0) {
+        return <div className="empty">No one owes you</div>;
+      }
+
+      return names.map(name => (
+        <div key={name} className="card">
+          <strong>{name}</strong> owes you{" "}
+          ${(owedToMe[name] / 100).toFixed(2)}
         </div>
       ));
+
+      // initial, works
+      // const list = perExpenseOwes.filter(o => o.to === user);
+      // if (list.length === 0) return <div className="empty">No one owes you (simple)</div>;
+
+      // return list.map((o, i) => (
+      //   <div key={`${o.expenseId}-${o.from}-${i}`} className="card">
+      //     <strong>{o.from}</strong> owes you ${(o.amount_cents / 100).toFixed(2)}
+      //     {o.description ? <div className="desc">{o.description}</div> : null}
+      //   </div>
+      // ));
     }
 
     if (activeView === "owe_simple") {
-      const list = perExpenseOwes.filter(o => o.from === user);
-      if (list.length === 0) return <div className="empty">You don’t owe anyone (simple)</div>;
+      const perExpenseOwes = computePerExpenseOwes(expenses, members);
+      const { iOwe } = bilateralNetting(perExpenseOwes, user);
 
-      return list.map((o, i) => (
-        <div key={`${o.expenseId}-${o.to}-${i}`} className="card">
-          You owe <strong>{o.to}</strong> ${(o.amount_cents / 100).toFixed(2)}
-          {o.description ? <div className="desc">{o.description}</div> : null}
+      const names = Object.keys(iOwe);
+      if (names.length === 0) {
+        return <div className="empty">You don’t owe anyone</div>;
+      }
+
+      return names.map(name => (
+        <div key={name} className="card">
+          You owe <strong>{name}</strong>{" "}
+          ${(iOwe[name] / 100).toFixed(2)}
         </div>
       ));
+
+      // initial, works
+      // const list = perExpenseOwes.filter(o => o.from === user);
+      // if (list.length === 0) return <div className="empty">You don’t owe anyone (simple)</div>;
+
+      // return list.map((o, i) => (
+      //   <div key={`${o.expenseId}-${o.to}-${i}`} className="card">
+      //     You owe <strong>{o.to}</strong> ${(o.amount_cents / 100).toFixed(2)}
+      //     {o.description ? <div className="desc">{o.description}</div> : null}
+      //   </div>
+      // ));
     }
 
     // net settlement views
@@ -151,7 +207,7 @@ export default function App() {
     <div className="container">
       {/* Header */}
       <Header
-        title="Share Expenses"
+        title="Expenses"
         onMenuClick={() => setDrawerOpen(true)}
       />
 
