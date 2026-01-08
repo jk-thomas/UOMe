@@ -15,6 +15,9 @@ app.use(cors({ origin: CORS_ORIGIN === "*" ? true : CORS_ORIGIN }));
 
 const db = await openDb(DB_FILE);
 
+app.get("/health", (req, res) => {
+  res.status(200).send("Website is running");
+});
 app.get("/api/health", (_, res) => res.json({ ok: true }));
 app.use("/api/expenses", expensesRouter(db));
 app.use("/api/settlement", settlementRouter(db));
