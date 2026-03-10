@@ -14,6 +14,7 @@ app.use(express.json({ limit: "1mb" }));
 app.use(cors({ origin: CORS_ORIGIN === "*" ? true : CORS_ORIGIN }));
 
 const db = await openDb(DB_FILE);
+console.log(`Using database file: ${DB_FILE}`)
 
 app.get("/health", (req, res) => {
   res.status(200).send("Website is running");
