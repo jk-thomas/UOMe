@@ -9,3 +9,6 @@
 ## Plans:
 * backend: Dockerize onto Fly.io
 * database: Supabase
+* self host?
+* groups
+* share links
