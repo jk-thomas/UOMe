@@ -11,7 +11,7 @@ export function expensesRouter(db) {
   // List all expenses
   router.get("/", async (_req, res) => {
     const expenses = await db.all(
-      `SELECT id, created_at, payer, amount_cents, description
+      `SELECT id, group_id, payer_id, amount_cents, description, created_at
        FROM expenses
        ORDER BY datetime(created_at) DESC, id DESC`
     );
@@ -20,28 +20,37 @@ export function expensesRouter(db) {
 
   // Add expense
   router.post("/", async (req, res) => {
-    const { payer, amount, description = "" } = req.body ?? {};
+    //const { payer, amount, description = "" } = req.body ?? {};
+    const { group_id, payer_id, amount_cents, description } = req.body;
 
-    if (!MEMBERS.includes(payer))
-      return res.status(400).json({ error: "Invalid payer" });
-
-    if (!validAmount(amount))
-      return res.status(400).json({ error: "Invalid amount" });
-
-    if (description.length > 200)
-      return res.status(400).json({ error: "Description too long" });
-
-    const amount_cents = Math.round(amount * 100);
-
-    const result = await db.run(
-      `INSERT INTO expenses (payer, amount_cents, description)
-       VALUES (?, ?, ?)`,
-      payer,
-      amount_cents,
-      description.trim()
+    await db.run(
+      `INSERT INTO expenses (group_id, payer_id, amount_cents, description)
+      VALUES(?, ?, ?, ?)`,
+      [group_id, payer_id, amount_cents, description]
     );
 
-    res.status(201).json({ id: result.lastID });
+    res.json({success: true});
+
+    // if (!MEMBERS.includes(payer))
+    //   return res.status(400).json({ error: "Invalid payer" });
+
+    // if (!validAmount(amount))
+    //   return res.status(400).json({ error: "Invalid amount" });
+
+    // if (description.length > 200)
+    //   return res.status(400).json({ error: "Description too long" });
+
+    // //const amount_cents = Math.round(amount * 100);
+
+    // const result = await db.run(
+    //   `INSERT INTO expenses (payer, amount_cents, description)
+    //    VALUES (?, ?, ?)`,
+    //   payer,
+    //   amount_cents,
+    //   description.trim()
+    // );
+
+    // res.status(201).json({ id: result.lastID });
   });
 
   // Update expense (correction only)

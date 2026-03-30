@@ -3,6 +3,8 @@ import path from "node:path";
 import sqlite3 from "sqlite3";
 import { open } from "sqlite";
 
+// "test": "npm run reset-db && node tests/expenses.test.js && node tests/settlement.test.js"
+
 const DB_FILE = process.env.DB_FILE ?? "./data/expenses.sqlite";
 
 async function resetDb() {

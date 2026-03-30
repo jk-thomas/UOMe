@@ -13,7 +13,7 @@ CREATE TABLE IF NOT EXISTS groups (
 
   created_at TEXT NOT NULL DEFAULT (datetime('now'))
 
-  -- creator_id INTEGER,
+  -- creator_id INTEGER, 
   -- FOREIGN KEY (creator_id) REFERENCES users(id)
 );
 
@@ -32,13 +32,21 @@ CREATE TABLE IF NOT EXISTS expenses (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   group_id INTEGER NOT NULL,
   payer_id INTEGER NOT NULL,
-  -- payer TEXT NOT NULL,
 
   amount_cents INTEGER NOT NULL CHECK (amount_cents > 0),
-  description TEXT NOT NULL DEFAULT ''
+  description TEXT NOT NULL DEFAULT '',
 
-  created_at TEXT NOT NULL DEFAULT (datetime('now'))
+  created_at TEXT NOT NULL DEFAULT (datetime('now')),
 
   FOREIGN KEY (group_id) REFERENCES groups(id) ON DELETE CASCADE,
   FOREIGN KEY (payer_id) REFERENCES users(id)
 );
+
+-- CREATE TABLE IF NOT EXISTS expenses (
+--   id INTEGER PRIMARY KEY AUTOINCREMENT,
+--   created_at TEXT NOT NULL DEFAULT (datetime('now')),
+--   payer TEXT NOT NULL,
+  
+--   amount_cents INTEGER NOT NULL CHECK (amount_cents > 0),
+--   description TEXT NOT NULL DEFAULT ''
+-- );
