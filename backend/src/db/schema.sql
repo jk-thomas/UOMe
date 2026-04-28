@@ -17,7 +17,7 @@ CREATE TABLE IF NOT EXISTS groups (
   -- FOREIGN KEY (creator_id) REFERENCES users(id)
 );
 
-CREATE TABLE group_members (
+CREATE TABLE IF NOT EXISTS group_members (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   group_id INTEGER NOT NULL,
   user_id INTEGER NOT NULL,
@@ -41,6 +41,9 @@ CREATE TABLE IF NOT EXISTS expenses (
   FOREIGN KEY (group_id) REFERENCES groups(id) ON DELETE CASCADE,
   FOREIGN KEY (payer_id) REFERENCES users(id)
 );
+
+CREATE INDEX IF NOT EXISTS idx_group_members_group_id ON group_members(group_id);
+CREATE INDEX IF NOT EXISTS idx_expenses_group_id ON expenses(group_id);
 
 -- CREATE TABLE IF NOT EXISTS expenses (
 --   id INTEGER PRIMARY KEY AUTOINCREMENT,

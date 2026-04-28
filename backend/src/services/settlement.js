@@ -1,24 +1,30 @@
-import { MEMBERS } from "../config/members.js";
-
-export function computeSettlement(expenses) {
+export function computeSettlement(expenses, members) {
   const balances = {};
-  MEMBERS.forEach(m => (balances[m] = 0));
+  for (const member of members) {
+    balances[member.id] = 0;
+  }
 
-  for (const e of expenses) {
-    if (!balances.hasOwnProperty(e.payer)) continue;
+  if (members.length === 0) {
+    return { balances, transfers: [] };
+  }
 
-    const n = MEMBERS.length;
-    const share = Math.floor(e.amount_cents / n);
-    const remainder = e.amount_cents - share * n;
+  for (const expense of expenses) {
+    if (!Object.prototype.hasOwnProperty.call(balances, expense.payer_id)) {
+      continue;
+    }
 
-    // payer fronted the full amount
-    balances[e.payer] += e.amount_cents;
+    const n = members.length;
+    const share = Math.floor(expense.amount_cents / n);
+    const remainder = expense.amount_cents - share * n;
 
-    // everyone owes their share
-    MEMBERS.forEach((member, idx) => {
-      balances[member] -= share;
-      if (idx < remainder) balances[member] -= 1;
-    });
+    // Payer initially covers the full amount.
+    balances[expense.payer_id] += expense.amount_cents;
+
+    for (let idx = 0; idx < members.length; idx += 1) {
+      const memberId = members[idx].id;
+      balances[memberId] -= share;
+      if (idx < remainder) balances[memberId] -= 1;
+    }
   }
 
   return {
@@ -31,9 +37,10 @@ function minimizeTransfers(balances) {
   const debtors = [];
   const creditors = [];
 
-  for (const [name, cents] of Object.entries(balances)) {
-    if (cents < 0) debtors.push({ name, cents: -cents });
-    if (cents > 0) creditors.push({ name, cents });
+  for (const [userId, cents] of Object.entries(balances)) {
+    const id = Number(userId);
+    if (cents < 0) debtors.push({ user_id: id, cents: -cents });
+    if (cents > 0) creditors.push({ user_id: id, cents });
   }
 
   const transfers = [];
@@ -45,8 +52,8 @@ function minimizeTransfers(balances) {
     const amount = Math.min(d.cents, c.cents);
 
     transfers.push({
-      from: d.name,
-      to: c.name,
+      from_user_id: d.user_id,
+      to_user_id: c.user_id,
       amount_cents: amount
     });
 
