@@ -9,6 +9,8 @@
 ## Plans:
 * backend: Dockerize onto Fly.io
 * database: Supabase
-* self host?
+* self hosting?
 * groups
 * share links
+* token auth
+* socket.io
