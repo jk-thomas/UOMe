@@ -11,6 +11,7 @@ export async function openDb(dbFile) {
     filename: dbFile,
     driver: sqlite3.Database
   });
+  await db.exec("PRAGMA foreign_keys = ON");
 
   const schema = fs.readFileSync(
     new URL("./schema.sql", import.meta.url),

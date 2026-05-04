@@ -79,6 +79,16 @@ export function expensesRouter(db) {
     if (description.length > 200)
       return res.status(400).json({ error: "description too long" });
 
+    const member = await db.get(
+      `SELECT 1
+       FROM group_members
+       WHERE group_id = ? AND user_id = ?`,
+      [groupId, payerId]
+    );
+    if (!member) {
+      return res.status(400).json({ error: "payer must be a member of the group" });
+    }
+
     const result = await db.run(
       `UPDATE expenses
        SET payer_id = ?, amount_cents = ?, description = ?
