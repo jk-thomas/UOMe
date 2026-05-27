@@ -1,7 +1,8 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 
 export default function TransactionCard({ expense, isOwner, onDelete, onEdit }) {
   const [showActions, setShowActions] = useState(false);
+  const pressTimer = useRef(null);
 
   function openActions() {
     if (!isOwner) return;
@@ -37,7 +38,7 @@ export default function TransactionCard({ expense, isOwner, onDelete, onEdit }) 
       onTouchMove={handleTouchEnd}
     >
       <div className="card-main">
-        <strong>{expense.payer}</strong> paid $
+        <strong>{expense.payer_name}</strong> paid $
         {(expense.amount_cents / 100).toFixed(2)}
         <div className="desc">{expense.description}</div>
         <small>{new Date(expense.created_at).toLocaleString()}</small>

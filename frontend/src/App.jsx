@@ -1,160 +1,151 @@
 import { useEffect, useState } from "react";
+import { Routes, Route } from "react-router-dom";
 import {
   getExpenses,
   getSettlement,
   addExpense,
-  deleteExpense
+  deleteExpense,
+  listUsers,
 } from "./api";
 
 import { useCurrentUser } from "./hooks/useCurrentUser";
+import { useCurrentGroup } from "./hooks/useCurrentGroup";
 
+import UserSetup from "./components/UserSetup";
+import GroupSetup from "./components/GroupSetup";
+import JoinPage from "./components/JoinPage";
 import Ledger from "./components/Ledger";
 import FloatingAddButton from "./components/FloatingAddButton";
 import AddExpenseModal from "./components/AddExpenseModal";
 import SideDrawer from "./components/SideDrawer";
 import Header from "./components/Header";
+import ShareGroupInfo from "./components/ShareGroupInfo";
 import { computePerExpenseOwes } from "./utils/settlement";
-import { aggregateByPerson } from "./utils/aggregateOwes";
 import { bilateralNetting } from "./utils/bitlateralNetting";
 
 import "./App.css";
 
-export default function App() {
-  /* -------------------- STATE -------------------- */
+function normalizeExpenses(expenses) {
+  return expenses.map((e) => ({ ...e, payer: e.payer_name }));
+}
+
+function MainApp() {
+  const { userId, userName, setUser } = useCurrentUser();
+  const { groupId, groupName, joinCode, setGroup } = useCurrentGroup();
+
   const [expenses, setExpenses] = useState([]);
   const [members, setMembers] = useState([]);
+  const [payerMembers, setPayerMembers] = useState([]);
   const [balances, setBalances] = useState({});
   const [transfers, setTransfers] = useState([]);
-  
+
   const [activeView, setActiveView] = useState("ledger");
   const [showModal, setShowModal] = useState(false);
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const [showShare, setShowShare] = useState(false);
 
-  const { user, chooseUser } = useCurrentUser(members);
+  const normalizedExpenses = normalizeExpenses(expenses);
 
-  /* -------------------- DATA LOADING -------------------- */
   async function refresh() {
-    const exp = await getExpenses();
-    const set = await getSettlement();
+    if (!groupId) return;
 
-    setExpenses(exp.expenses);
-    setMembers(exp.members);
-    setBalances(set.balances);
-    setTransfers(set.transfers);
+    const [expData, setData, allUsers] = await Promise.all([
+      getExpenses(groupId),
+      getSettlement(groupId),
+      listUsers(),
+    ]);
+
+    setExpenses(expData.expenses);
+    setMembers(setData.members);
+    setBalances(setData.balances);
+    setTransfers(setData.transfers);
+    setPayerMembers(
+      allUsers.filter((u) => setData.members.includes(u.name))
+    );
   }
 
   useEffect(() => {
-    refresh();
-  }, []);
+    if (groupId) {
+      refresh();
+    }
+  }, [groupId]);
 
-  /* -------------------- HANDLERS -------------------- */
   async function handleAdd(data) {
-    await addExpense(data);
+    await addExpense({
+      group_id: groupId,
+      payer_id: data.payer_id,
+      amount_cents: Math.round(data.amount * 100),
+      description: data.description || "",
+    });
     await refresh();
   }
 
   async function handleDelete(id) {
-    await deleteExpense(id);
+    await deleteExpense(id, groupId);
     await refresh();
   }
 
-  /* -------------------- MAIN VIEW SWITCH -------------------- */
   function renderMainView() {
     if (activeView === "ledger") {
-      // useEffect(() => {
-      //   document.title = "UOMe | Ledger";
-      // }, []);
       return (
         <Ledger
           expenses={expenses}
-          currentUser={user}
+          currentUserId={userId}
           onDelete={handleDelete}
         />
       );
     }
 
-    // Simple (per-expense) transparent views
-    const perExpenseOwes = computePerExpenseOwes(expenses, members);
+    const perExpenseOwes = computePerExpenseOwes(normalizedExpenses, members);
 
     if (activeView === "owed_simple") {
-      // aggregate
-      // const perExpenseOwes = computePerExpenseOwes(expenses, members);
-      // const list = perExpenseOwes.filter(o => o.to === user);
-
-      // const aggregated = aggregateByPerson(list, "from");
-
-      // const names = Object.keys(aggregated);
-      // if (names.length === 0) {
-      //   return <div className="empty">No one owes you</div>;
-      // }
-
-      // return names.map(name => (
-      //   <div key={name} className="card">
-      //     <strong>{name}</strong> owes you{" "}
-      //     ${(aggregated[name] / 100).toFixed(2)}
-      //   </div>
-      // ));
-
-      // net
-      const perExpenseOwes = computePerExpenseOwes(expenses, members);
-      const { owedToMe } = bilateralNetting(perExpenseOwes, user);
-
+      const { owedToMe } = bilateralNetting(perExpenseOwes, userName);
       const names = Object.keys(owedToMe);
       if (names.length === 0) {
-        return <div className="empty">No one owes you</div>;
+        return (
+          <div className="empty">
+            <p>No one owes you right now.</p>
+            <p className="empty-hint">Per-expense breakdown from the ledger.</p>
+          </div>
+        );
       }
 
-      return names.map(name => (
+      return names.map((name) => (
         <div key={name} className="card">
-          <strong>{name}</strong> owes you{" "}
-          ${(owedToMe[name] / 100).toFixed(2)}
+          <strong>{name}</strong> owes you ${(owedToMe[name] / 100).toFixed(2)}
         </div>
       ));
-
-      // initial, works
-      // const list = perExpenseOwes.filter(o => o.to === user);
-      // if (list.length === 0) return <div className="empty">No one owes you (simple)</div>;
-
-      // return list.map((o, i) => (
-      //   <div key={`${o.expenseId}-${o.from}-${i}`} className="card">
-      //     <strong>{o.from}</strong> owes you ${(o.amount_cents / 100).toFixed(2)}
-      //     {o.description ? <div className="desc">{o.description}</div> : null}
-      //   </div>
-      // ));
     }
 
     if (activeView === "owe_simple") {
-      const perExpenseOwes = computePerExpenseOwes(expenses, members);
-      const { iOwe } = bilateralNetting(perExpenseOwes, user);
-
+      const { iOwe } = bilateralNetting(perExpenseOwes, userName);
       const names = Object.keys(iOwe);
       if (names.length === 0) {
-        return <div className="empty">You don’t owe anyone</div>;
+        return (
+          <div className="empty">
+            <p>You don't owe anyone right now.</p>
+            <p className="empty-hint">Per-expense breakdown from the ledger.</p>
+          </div>
+        );
       }
 
-      return names.map(name => (
+      return names.map((name) => (
         <div key={name} className="card">
-          You owe <strong>{name}</strong>{" "}
-          ${(iOwe[name] / 100).toFixed(2)}
+          You owe <strong>{name}</strong> ${(iOwe[name] / 100).toFixed(2)}
         </div>
       ));
-
-      // initial, works
-      // const list = perExpenseOwes.filter(o => o.from === user);
-      // if (list.length === 0) return <div className="empty">You don’t owe anyone (simple)</div>;
-
-      // return list.map((o, i) => (
-      //   <div key={`${o.expenseId}-${o.to}-${i}`} className="card">
-      //     You owe <strong>{o.to}</strong> ${(o.amount_cents / 100).toFixed(2)}
-      //     {o.description ? <div className="desc">{o.description}</div> : null}
-      //   </div>
-      // ));
     }
 
-    // net settlement views
     if (activeView === "owed_opt") {
-      const list = transfers.filter(t => t.to === user);
-      if (list.length === 0) return <div className="empty">No payments to you (optimized)</div>;
+      const list = transfers.filter((t) => t.to === userName);
+      if (list.length === 0) {
+        return (
+          <div className="empty">
+            <p>No net payments to you.</p>
+            <p className="empty-hint">Optimized settlement — fewer transfers overall.</p>
+          </div>
+        );
+      }
 
       return list.map((t, i) => (
         <div key={i} className="card">
@@ -164,8 +155,15 @@ export default function App() {
     }
 
     if (activeView === "owe_opt") {
-      const list = transfers.filter(t => t.from === user);
-      if (list.length === 0) return <div className="empty">No payments to make (optimized)</div>;
+      const list = transfers.filter((t) => t.from === userName);
+      if (list.length === 0) {
+        return (
+          <div className="empty">
+            <p>No net payments for you to make.</p>
+            <p className="empty-hint">Optimized settlement — fewer transfers overall.</p>
+          </div>
+        );
+      }
 
       return list.map((t, i) => (
         <div key={i} className="card">
@@ -175,10 +173,17 @@ export default function App() {
     }
 
     if (activeView === "mine") {
-      const mine = expenses.filter(e => e.payer === user);
-      if (mine.length === 0) return <div className="empty">No transactions yet</div>;
+      const mine = expenses.filter((e) => e.payer_id === userId);
+      if (mine.length === 0) {
+        return (
+          <div className="empty">
+            <p>You haven't paid for any expenses yet.</p>
+            <p className="empty-hint">Expenses you add will appear here.</p>
+          </div>
+        );
+      }
 
-      return mine.map(e => (
+      return mine.map((e) => (
         <div key={e.id} className="card">
           ${(e.amount_cents / 100).toFixed(2)} – {e.description || "No description"}
         </div>
@@ -188,62 +193,83 @@ export default function App() {
     return null;
   }
 
-  /* -------------------- EARLY RETURN (IDENTITY) -------------------- */
-  if (!user) {
+  if (!userId) {
+    return <UserSetup onComplete={(id, name) => setUser(id, name)} />;
+  }
+
+  if (!groupId) {
     return (
-      <div className="container">
-        <h2>Select User</h2>
-        {members.map(m => (
-          <button key={m} onClick={() => chooseUser(m)}>
-            {m}
-          </button>
-        ))}
-      </div>
+      <GroupSetup
+        userId={userId}
+        onGroupReady={(id, name, code) => setGroup(id, name, code)}
+      />
     );
   }
 
-  /* -------------------- RENDER -------------------- */
   return (
     <div className="container">
-      {/* Header */}
       <Header
-        title="Expenses"
+        title={groupName || "Expenses"}
+        memberCount={members.length}
         onMenuClick={() => setDrawerOpen(true)}
       />
 
-      {/* Main Content */}
-      {renderMainView()}
+      <main className="main-content" key={activeView}>
+        {renderMainView()}
+      </main>
 
-      {/* Floating + button */}
       {activeView === "ledger" && (
         <FloatingAddButton onClick={() => setShowModal(true)} />
       )}
 
-      {/* Add Expense Modal */}
       {showModal && (
         <AddExpenseModal
-          members={members}
-          defaultPayer={user}
+          members={payerMembers}
+          defaultPayerId={userId}
           onSubmit={handleAdd}
           onClose={() => setShowModal(false)}
         />
       )}
 
-      {/* Side Drawer (personal view) */}
+      {showShare && joinCode && (
+        <ShareGroupInfo
+          groupName={groupName}
+          joinCode={joinCode}
+          onClose={() => setShowShare(false)}
+        />
+      )}
+
       <SideDrawer
         open={drawerOpen}
         onClose={() => setDrawerOpen(false)}
-        setActiveView={view => {
+        activeView={activeView}
+        setActiveView={(view) => {
           setActiveView(view);
           setDrawerOpen(false);
         }}
         balances={balances}
         transfers={transfers}
-        user={user}
-        expenses={expenses}
+        user={userName}
+        expenses={normalizedExpenses}
         members={members}
+        onShareGroup={
+          joinCode
+            ? () => {
+                setDrawerOpen(false);
+                setShowShare(true);
+              }
+            : undefined
+        }
       />
     </div>
   );
 }
 
+export default function App() {
+  return (
+    <Routes>
+      <Route path="/join/:token" element={<JoinPage />} />
+      <Route path="/*" element={<MainApp />} />
+    </Routes>
+  );
+}
